@@ -7,6 +7,9 @@ using Microsoft.Xna.Framework.Graphics;
 using System.Linq;
 using System.Collections.Generic;
 using Terraria.GameContent;
+using Terraria.ModLoader;
+using Terraria.ID;
+using betterTeammateUI;
 
 namespace betterTeammateUI
 {
@@ -19,7 +22,10 @@ namespace betterTeammateUI
         // The global tick count when the player died, used to calculate respawn time
         public uint DeathTime;
         public int Health;
+        public int MaxHealth;
         public int DPS;
+        public bool HasPotionSickness;
+        public int HeldItemType; // 新增：持有物品类型
         // RespawnLeft 字段移除
         // 你可以根据需要扩展更多字段
         public static PlayerState Read(System.IO.BinaryReader reader)
@@ -28,9 +34,12 @@ namespace betterTeammateUI
             {
                 Name = reader.ReadString(),
                 IsDead = reader.ReadBoolean(),
-                RespawnTime = reader.ReadInt32(),
+                RespawnTime = 0,
                 Health = reader.ReadInt32(),
-                DPS = reader.ReadInt32()
+                MaxHealth = reader.ReadInt32(),
+                DPS = reader.ReadInt32(),
+                HasPotionSickness = reader.ReadBoolean(),
+                HeldItemType = reader.ReadInt32() // 新增
             };
         }
 
@@ -38,9 +47,11 @@ namespace betterTeammateUI
         {
             writer.Write(Name);
             writer.Write(IsDead);
-            writer.Write(RespawnTime);
             writer.Write(Health);
+            writer.Write(MaxHealth);
             writer.Write(DPS);
+            writer.Write(HasPotionSickness);
+            writer.Write(HeldItemType); // 新增
         }
 
         public PlayerState Clone()
@@ -52,7 +63,10 @@ namespace betterTeammateUI
                 RespawnTime = RespawnTime,
                 DeathTime = DeathTime,
                 Health = Health,
-                DPS = DPS
+                MaxHealth = MaxHealth,
+                DPS = DPS,
+                HasPotionSickness = HasPotionSickness,
+                HeldItemType = HeldItemType // 新增
             };
         }
     }
@@ -74,6 +88,9 @@ namespace betterTeammateUI
             public UIText HpText;
             public UIText DpsText;
             public UIText RespawnText;
+            public UIText PotionSicknessText;
+            public UIImage PotionSicknessIcon;
+            public ItemImage WeaponIcon; // 新增：武器图标
             public float LastPercent;
             public bool LastIsDead;
             public Color LastFgColor;
@@ -95,15 +112,14 @@ namespace betterTeammateUI
                     int ticksPassed = (int)(Main.GameUpdateCount - State.DeathTime);
                     percent = MathHelper.Clamp((float)ticksPassed / Math.Max(1, State.RespawnTime), 0f, 1f);
                     fgColor = Color.White;
-                    bgColor = new Color(60, 60, 60);
+                    bgColor = new Color(60, 60, 60, 180);
                 }
                 else
                 {
-                    Player player = Main.player.FirstOrDefault(p => p?.name == State.Name);
-                    int maxHp = player?.statLifeMax2 ?? 400;
+                    int maxHp = State.MaxHealth > 0 ? State.MaxHealth : 400;
                     percent = MathHelper.Clamp(State.Health / (float)Math.Max(1, maxHp), 0f, 1f);
                     fgColor = Color.Red;
-                    bgColor = Color.Black;
+                    bgColor = new Color(0, 0, 0, 180);
                 }
                 Rectangle hitbox = GetInnerDimensions().ToRectangle();
                 hitbox.X += 2;
@@ -153,6 +169,7 @@ namespace betterTeammateUI
             int curRespawnTime = player.respawnTimer;
             int curHealth = player.statLife;
             int curDps = 0; // 如有DPS统计可补充
+            bool hasPotionSickness = player.HasBuff(21); // 21是Potion Sickness的BuffID
 
             bool needSync = false;
             if (lastLocalState == null)
@@ -173,19 +190,7 @@ namespace betterTeammateUI
 
             if (needSync && betterTeammateUISystem.Instance != null)
             {
-                // 死亡瞬间才同步respawnTimer
-                int syncRespawnTime = curDead && !lastDead ? curRespawnTime : 0;
-                var state = new PlayerState
-                {
-                    Name = player.name,
-                    IsDead = curDead,
-                    RespawnTime = syncRespawnTime,
-                    DeathTime = curDead ? Main.GameUpdateCount : 0,
-                    Health = curHealth,
-                    DPS = curDps
-                };
-                betterTeammateUISystem.Instance.SendLocalPlayerState(state);
-                lastLocalState = state.Clone();
+                SyncLocalPlayerState();
             }
             lastDead = curDead;
             lastRespawnTime = curRespawnTime;
@@ -200,11 +205,40 @@ namespace betterTeammateUI
             }
         }
 
+        public void SyncLocalPlayerState()
+        {
+            if (betterTeammateUISystem.Instance == null) return;
+            var player = Main.LocalPlayer;
+            int syncRespawnTime = player.dead && !lastDead ? player.respawnTimer : 0;
+            var state = new PlayerState
+            {
+                Name = player.name,
+                IsDead = player.dead,
+                RespawnTime = player.respawnTimer,
+                DeathTime = player.dead ? Main.GameUpdateCount : 0,
+                Health = player.statLife,
+                MaxHealth = player.statLifeMax2,
+                DPS = 0, // 如有DPS统计可补充
+                HasPotionSickness = player.HasBuff(21), // 21是Potion Sickness的BuffID
+                HeldItemType = player.HeldItem?.type ?? ItemID.None // 新增：同步持有物品类型
+            };
+            betterTeammateUISystem.Instance.SendLocalPlayerState(state);
+            lastLocalState = state.Clone();
+        }
+
         private void RefreshPlayerStates()
         {
             playerStates.Clear();
             foreach (var player in Main.ActivePlayers)
             {
+                // 根据配置决定是否跳过本地玩家
+                bool showSelf = false;
+                try
+                {
+                    showSelf = ModContent.GetInstance<BetterTeammateUIClientConfig>().ShowSelfInUI;
+                }
+                catch { }
+                if (!showSelf && player == Main.LocalPlayer) continue;
                 playerStates[player.name] = new PlayerState
                 {
                     Name = player.name,
@@ -212,7 +246,9 @@ namespace betterTeammateUI
                     RespawnTime = player.respawnTimer,
                     DeathTime = player.dead ? Main.GameUpdateCount : 0,
                     Health = player.statLife,
-                    DPS = 0 // 你可以根据需要计算DPS
+                    MaxHealth = player.statLifeMax2,
+                    DPS = 0, // 你可以根据需要计算DPS
+                    HeldItemType = player.HeldItem?.type ?? ItemID.None // 新增
                 };
             }
         }
@@ -251,11 +287,12 @@ namespace betterTeammateUI
             UpdateUI();
         }
 
-        public void OnPlayerHealthChange(string name, int health)
+        public void OnPlayerHealthChange(string name, int health, int maxHealth)
         {
             if (playerStates.TryGetValue(name, out var state))
             {
                 state.Health = health;
+                state.MaxHealth = maxHealth;
             }
             UpdateUI();
         }
@@ -269,6 +306,23 @@ namespace betterTeammateUI
             UpdateUI();
         }
 
+        public void OnPlayerPotionSicknessChange(string name, bool hasPotionSickness)
+        {
+            if (playerStates.TryGetValue(name, out var state))
+            {
+                state.HasPotionSickness = hasPotionSickness;
+            }
+            else
+            {
+                playerStates[name] = new PlayerState
+                {
+                    Name = name,
+                    HasPotionSickness = hasPotionSickness
+                };
+            }
+            UpdateUI();
+        }
+
         public void RefreshTeamPlayers()
         {
             RefreshPlayerStates();
@@ -277,6 +331,13 @@ namespace betterTeammateUI
 
         public void UpdateUI()
         {
+            // 获取自定义复活时间配置
+            int customRespawn = 0;
+            try
+            {
+                customRespawn = ModContent.GetInstance<BetterTeammateUIClientConfig>().CustomRespawnTime;
+            }
+            catch { }
             // 先移除不存在的玩家面板
             var toRemove = playerPanelElements.Keys.Except(playerStates.Keys).ToList();
             foreach (var name in toRemove)
@@ -289,9 +350,6 @@ namespace betterTeammateUI
             int y = 10;
             foreach (var state in playerStates.Values)
             {
-                // 跳过本地玩家
-                if (state.Name == Main.LocalPlayer?.name)
-                    continue;
                 PlayerPanelElements elements;
                 if (!playerPanelElements.TryGetValue(state.Name, out elements))
                 {
@@ -303,10 +361,11 @@ namespace betterTeammateUI
                     elements.Panel.BackgroundColor = Color.Transparent;
                     elements.Panel.Left.Set(10, 0f);
                     elements.Panel.Top.Set(y, 0f);
+                    elements.Panel.BorderColor = new Color(0, 0, 0, 200);
 
                     // 文本
                     elements.NameText = new UIText(state.Name);
-                    elements.NameText.Left.Set(10, 0f);
+                    elements.NameText.Left.Set(0, 0f);
                     elements.NameText.Top.Set(0, 0f);
                     elements.Panel.Append(elements.NameText);
 
@@ -315,15 +374,26 @@ namespace betterTeammateUI
                     elements.HpText.Top.Set(0, 0f);
                     elements.Panel.Append(elements.HpText);
 
-                    // elements.DpsText = new UIText("");
-                    // elements.DpsText.Left.Set(200, 0f);
-                    // elements.DpsText.Top.Set(0, 0f);
-                    // elements.Panel.Append(elements.DpsText);
-
                     elements.RespawnText = new UIText("");
                     elements.RespawnText.Left.Set(-20f, 1f);
                     elements.RespawnText.Top.Set(0, 0f);
                     elements.Panel.Append(elements.RespawnText);
+
+                    elements.PotionSicknessText = null; // 不再用文本
+                    elements.PotionSicknessIcon = new UIImage(Terraria.GameContent.TextureAssets.Buff[BuffID.PotionSickness]);
+                    elements.PotionSicknessIcon.Left.Set(-80f, 1f);
+                    elements.PotionSicknessIcon.Top.Set(-10f, 0f);
+                    elements.PotionSicknessIcon.ImageScale = 0.75f;
+                    elements.PotionSicknessIcon.Recalculate();
+                    elements.Panel.Append(elements.PotionSicknessIcon);
+
+                    // 新增：武器图标
+                    elements.WeaponIcon = new ItemImage(ItemID.None); // 默认空手
+                    elements.WeaponIcon.Left.Set(-45f, 1f);
+                    elements.WeaponIcon.Top.Set(-5f, 0f);
+                    elements.WeaponIcon.ImageScale = 0.65f;
+                    elements.WeaponIcon.Recalculate();
+                    elements.Panel.Append(elements.WeaponIcon);
 
                     panel.Append(elements.Panel);
 
@@ -335,13 +405,15 @@ namespace betterTeammateUI
 
                 elements.Panel.Top.Set(y, 0f);
                 ((PlayerPanel)elements.Panel).State = state;
-                elements.Panel.BackgroundColor = state.IsDead ? new Color(30, 30, 30) : new Color(90, 90, 90);
+                elements.Panel.BackgroundColor = state.IsDead ? new Color(30, 30, 30, 180) : new Color(90, 90, 90, 180);
                 // 更新文本
                 elements.NameText.SetText(state.Name);
                 elements.NameText.TextColor = state.IsDead ? Color.Red : Color.White;
                 if (state.IsDead && state.RespawnTime > 0)
                 {
-                    int remaining = Math.Max(0, (state.RespawnTime - (int)(Main.GameUpdateCount - state.DeathTime)) / 60);
+                    int baseRespawn = state.RespawnTime;
+                    if (customRespawn > 0) baseRespawn = customRespawn * 60;
+                    int remaining = Math.Max(0, (baseRespawn - (int)(Main.GameUpdateCount - state.DeathTime)) / 60);
                     elements.RespawnText.SetText($"({remaining})");
                     elements.RespawnText.TextColor = Color.Yellow;
                     elements.HpText.SetText("");
@@ -350,9 +422,64 @@ namespace betterTeammateUI
                 {
                     elements.RespawnText.SetText("");
                     elements.HpText.SetText($"{state.Health}");
-                    // elements.DpsText.SetText($"DPS: {state.DPS}");
                 }
-                y -= 60;
+                // 药水病显示
+                if (elements.PotionSicknessIcon != null)
+                {
+                    if (state.HasPotionSickness)
+                    {
+                        if (!elements.Panel.HasChild(elements.PotionSicknessIcon))
+                            elements.Panel.Append(elements.PotionSicknessIcon);
+                    }
+                    else
+                    {
+                        if (elements.Panel.HasChild(elements.PotionSicknessIcon))
+                            elements.Panel.RemoveChild(elements.PotionSicknessIcon);
+                    }
+                }
+
+                // 武器图标显示
+                if (elements.WeaponIcon != null)
+                {
+                    // 获取是否显示武器图标的配置
+                    bool showWeaponIcon = false;
+                    try
+                    {
+                        showWeaponIcon = ModContent.GetInstance<BetterTeammateUIClientConfig>().ShowWeaponIcon;
+                    }
+                    catch { }
+
+                    int itemType = ItemID.None;
+                    if (player != null && player.HeldItem != null && player.HeldItem.type != ItemID.None)
+                    {
+                        itemType = player.HeldItem.type;
+                    }
+                    else if (state.HeldItemType != ItemID.None)
+                    {
+                        itemType = state.HeldItemType;
+                    }
+                    if (showWeaponIcon && itemType != ItemID.None)
+                    {
+                        elements.WeaponIcon.SetItemType(itemType);
+                        elements.WeaponIcon.Width.Set(32f * elements.WeaponIcon.ImageScale, 0f);
+                        elements.WeaponIcon.Height.Set(32f * elements.WeaponIcon.ImageScale, 0f);
+                        if (!elements.Panel.HasChild(elements.WeaponIcon))
+                            elements.Panel.Append(elements.WeaponIcon);
+                        // 药水病图标位置（武器图标显示时）
+                        if (elements.PotionSicknessIcon != null)
+                            elements.PotionSicknessIcon.Left.Set(-80f, 1f);
+                    }
+                    else
+                    {
+                        if (elements.Panel.HasChild(elements.WeaponIcon))
+                            elements.Panel.RemoveChild(elements.WeaponIcon);
+                        // 药水病图标位置（武器图标不显示时）
+                        if (elements.PotionSicknessIcon != null)
+                            elements.PotionSicknessIcon.Left.Set(-55f, 1f);
+                    }
+                }
+
+                y -= 64;
             }
         }
 
@@ -365,30 +492,34 @@ namespace betterTeammateUI
                 localState = new PlayerState { Name = state.Name };
                 playerStates[state.Name] = localState;
             }
-            // 只在本地活着→死亡时，记录本地死亡时间
             bool wasDead = localState.IsDead;
             bool changed =
                 localState.IsDead != state.IsDead ||
-                localState.RespawnTime != state.RespawnTime ||
                 localState.Health != state.Health ||
-                localState.DPS != state.DPS;
+                localState.MaxHealth != state.MaxHealth ||
+                localState.DPS != state.DPS ||
+                localState.HasPotionSickness != state.HasPotionSickness;
             if (changed)
             {
                 if (!wasDead && state.IsDead)
                 {
-                    // 死亡，记录本地死亡时间（只在本地活着→死亡时设置）
+                    // 死亡，记录本地死亡时间
                     localState.DeathTime = Main.GameUpdateCount;
+                    // 死亡时，远程玩家的 RespawnTime 采用本地玩家的 respawnTimer
+                    localState.RespawnTime = Main.LocalPlayer.respawnTimer;
                 }
                 if (wasDead && !state.IsDead)
                 {
                     // 复活，清零
                     localState.DeathTime = 0;
+                    localState.RespawnTime = 0;
                 }
                 localState.IsDead = state.IsDead;
-                localState.RespawnTime = state.RespawnTime;
                 localState.Health = state.Health;
+                localState.MaxHealth = state.MaxHealth;
                 localState.DPS = state.DPS;
-                // 不要用网络包的 DeathTime 覆盖本地
+                localState.HasPotionSickness = state.HasPotionSickness;
+                localState.HeldItemType = state.HeldItemType; // 新增
                 UpdateUI();
             }
         }

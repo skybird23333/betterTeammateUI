@@ -72,10 +72,10 @@ namespace betterTeammateUI
         public void SendLocalPlayerState(PlayerState currentState)
         {
             if (Main.netMode != NetmodeID.MultiplayerClient) return;
-            // 只有状态变化时才发送，由UI控制
-            lastSentState = currentState.Clone(); // 使用深拷贝，避免引用问题
+            lastSentState = currentState.Clone();
             ModPacket packet = Mod.GetPacket();
             packet.Write((byte)0); // 0: 玩家状态同步
+            // 只写入 Name, IsDead, Health, MaxHealth, DPS, HasPotionSickness
             currentState.Write(packet);
             packet.Send();
         }

@@ -29,6 +29,7 @@ namespace betterTeammateUI
 					var state = PlayerState.Read(reader);
 					ModPacket packet = GetPacket();
 					packet.Write((byte)0);
+					// 只转发 Name, IsDead, Health, MaxHealth, DPS, HasPotionSickness
 					state.Write(packet);
 					packet.Send(-1, whoAmI);
 				}

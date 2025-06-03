@@ -12,14 +12,16 @@ namespace betterTeammateUI
         {
             // 进入世界时刷新所有玩家状态并更新UI
             betterTeammateUISystem modSystem = ModContent.GetInstance<betterTeammateUISystem>();
-            modSystem.MyUI.RefreshTeamPlayers();
+            if (modSystem.MyUI != null)
+                modSystem.MyUI.RefreshTeamPlayers();
         }
 
         public override void PlayerDisconnect()
         {
             // 离开世界时清理UI状态
             betterTeammateUISystem modSystem = ModContent.GetInstance<betterTeammateUISystem>();
-            modSystem.MyUI.RefreshTeamPlayers();
+            if (modSystem.MyUI != null)
+                modSystem.MyUI.RefreshTeamPlayers();
         }
 
         public override void Kill(double damage, int hitDirection, bool pvp, PlayerDeathReason damageSource)
@@ -27,22 +29,29 @@ namespace betterTeammateUI
             // 死亡时只更新状态并刷新UI
             int respawnTime = Player.respawnTimer;
             betterTeammateUISystem modSystem = ModContent.GetInstance<betterTeammateUISystem>();
-            modSystem.MyUI.OnPlayerDeath(Player.name, respawnTime);
+            if (modSystem.MyUI != null)
+                modSystem.MyUI.OnPlayerDeath(Player.name, respawnTime);
         }
 
         public override void OnRespawn()
         {
             // 复活时只更新状态并刷新UI
             betterTeammateUISystem modSystem = ModContent.GetInstance<betterTeammateUISystem>();
-            modSystem.MyUI.OnPlayerRespawn(Player.name);
+            if (modSystem.MyUI != null)
+                modSystem.MyUI.OnPlayerRespawn(Player.name);
         }
 
         public override void PostUpdate()
         {
             // 实时同步血量和DPS（如有DPS统计逻辑可补充）
             betterTeammateUISystem modSystem = ModContent.GetInstance<betterTeammateUISystem>();
-            modSystem.MyUI.OnPlayerHealthChange(Player.name, Player.statLife);
-            // modSystem.MyUI.OnPlayerDPSChange(Player.name, 你的DPS计算);
+            if (modSystem.MyUI != null)
+            {
+                bool hasPotionSickness = Player.HasBuff(21); // 21是Potion Sickness的BuffID
+                modSystem.MyUI.OnPlayerHealthChange(Player.name, Player.statLife, Player.statLifeMax2);
+                modSystem.MyUI.OnPlayerPotionSicknessChange(Player.name, hasPotionSickness);
+                // modSystem.MyUI.OnPlayerDPSChange(Player.name, 你的DPS计算);
+            }
         }
     }
 }

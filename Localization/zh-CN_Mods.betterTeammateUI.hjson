@@ -1,0 +1,20 @@
+Configs: {
+	BetterTeammateUIClientConfig: {
+		DisplayName: 客户端配置
+
+		CustomRespawnTime: {
+			Label: 自定义重生时间（秒）
+			Tooltip:
+				'''
+				有些模组可能会导致重生时间显示错误。
+				如果遇到此问题，可以自行修改此选项，手动设定正确的重生时间。
+				设为-1则不会启用此功能。
+				'''
+		}
+
+		ShowSelfInUI: {
+			Label: 显示自己
+			Tooltip: 启用后，会将自己显示在队友界面中。
+		}
+	}
+}

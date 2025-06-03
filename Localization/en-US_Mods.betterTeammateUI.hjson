@@ -1,1 +1,20 @@
+Configs: {
+	BetterTeammateUIClientConfig: {
+		DisplayName: Better Teammate U I Client Config
 
+		CustomRespawnTime: {
+			Label: Custom Respawn Time(s)
+			Tooltip:
+				'''
+				Some mods can interfere with how this mod fetches the respawn timer.
+				If you find that the respawn timer is not working correctly, you can set a custom respawn time here.
+				Set to -1 to disable this feature.
+				'''
+		}
+
+		ShowSelfInUI: {
+			Label: Show Yourself In UI
+			Tooltip: If enabled, your own player will also be shown in the teammate UI.
+		}
+	}
+}
