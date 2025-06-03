@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "20ux67VIl6o=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\a260\\Documents\\My Games\\Terraria\\tModLoader\\ModSources\\betterTeammateUI\\betterTeammateUI.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\a260\\.nuget\\packages\\tmodloader.codeassist\\0.1.5\\tmodloader.codeassist.0.1.5.nupkg.sha512"
+  ],
+  "logs": []
+}
