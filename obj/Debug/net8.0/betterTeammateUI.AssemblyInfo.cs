@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("betterTeammateUI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7d30bca1882b08d63440d047db7a5f6b4f498261")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e01c9ba1a40fe622a1019b1d3a7944997b33eca0")]
 [assembly: System.Reflection.AssemblyProductAttribute("betterTeammateUI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("betterTeammateUI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

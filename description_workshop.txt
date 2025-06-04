@@ -1,1 +1,23 @@
-I made this mod in like 3 hours with AI, ill fix it later probably
+[b]Better Teammate UI[/b]
+[quote]支持简体中文[/quote]
+
+[i]IN DEVELOPMENT - Feel free to comment any issues below or on Github (preferred)[/i]
+
+Displays health, respawn timer, and whether or not each player has potion sickness on the left of your screen. Useful for boss fights with multiple players.
+
+(Optional: Can enable displaying what the player is holding.)
+
+[h1]Todo[/h1]
+[list]
+[*] Address UI responsiveness on different screen scales
+[*] Scale the UI based on player name
+[*] DPS
+[*] More Compact UI Style
+[*] Make it look prettier
+[*] Fix: The "show yourself" toggle not working
+[/list]
+
+[h1]AI Warning[/h1]
+I don't actually know C# and probably only wrote like 2% and I haven't bothered cleaning up.
+
+[b]Github (Translations Welcome!):[/b] [url=https://github.com/skybird23333/betterteammateui]https://github.com/skybird23333/betterteammateui[/url]

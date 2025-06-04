@@ -1,6 +1,7 @@
 # Better Teammate UI
 > 支持简体中文
-
+![alt text](/docs/img/image2.png)
+![alt text](/docs/img/image.png)
 BETA
 
 Displays health, respawn timer and whether or not they have potion sickness of each player on the left of your screen.
@@ -12,3 +13,4 @@ I dont actually know C# and I probably only wrote like 2% and i havent bothered 
 
 ## Credits
 Github side driver seat
+
