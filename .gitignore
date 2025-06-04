@@ -1,0 +1,47 @@
+# tModLoader mod .gitignore
+# Ignore build output
+bin/
+obj/
+*.user
+*.suo
+*.userprefs
+*.csproj.user
+*.vs/
+
+# Ignore tModLoader cache and temp files
+*.tmod
+*.db
+*.tmp
+*.bak
+*.log
+*.sln.docstates
+
+# Ignore local settings
+Properties/launchSettings.json
+
+# Ignore VSCode settings
+.vscode/
+
+# Ignore modpack/steam workshop temp
+*.pdb
+*.mdb
+*.cache
+*.zip
+*.rar
+*.7z
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore Terraria/Steam specific
+*.tmod
+*.tml
+*.bak
+*.old
+*.orig
+*.rej
+
+# Ignore mod preview images
+preview.png
+icon.png
