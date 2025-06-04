@@ -1,3 +1,3 @@
 displayName = Better Teammate UI
 author = skybird23333
-version = 0.1.2
+version = 0.1.4

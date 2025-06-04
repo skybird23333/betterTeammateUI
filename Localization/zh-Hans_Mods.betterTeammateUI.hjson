@@ -16,5 +16,10 @@ Configs: {
 			Label: 显示自己
 			Tooltip: 启用后，会将自己显示在队友界面中。
 		}
+
+		ShowWeaponIcon: {
+			Label: 显示物品图标
+			Tooltip: 启用后，会显示各个玩家目前持有的物品。
+		}
 	}
 }

@@ -16,5 +16,10 @@ Configs: {
 			Label: Show Yourself In UI
 			Tooltip: If enabled, your own player will also be shown in the teammate UI.
 		}
+
+		ShowWeaponIcon: {
+			Label: Show Weapon/Item Icon in UI
+			Tooltip: Show the item that each player is holding.
+		}
 	}
 }
